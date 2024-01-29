@@ -4,13 +4,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import warnings
 warnings.filterwarnings("ignore")
 
-import pickle 
 import argparse
-import pandas as pd
 import tensorflow as tf
  
-from model import Model
-from utils import set_seed
+from input.baseline_model.hete_gcn.model import Model
+from input.baseline_model.hete_gcn.utils import set_seed
 from dataset import Dataset 
 
 parser = argparse.ArgumentParser()

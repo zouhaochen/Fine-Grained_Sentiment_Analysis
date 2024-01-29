@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
-from utils import normalize_sparse_graph, sparse_to_tuple
+from input.baseline_model.hete_gcn.utils import normalize_sparse_graph, sparse_to_tuple
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import normalize
 

@@ -2,7 +2,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from utils import get_metrics
+from input.baseline_model.hete_gcn.utils import get_metrics
 from layers import GCN_Layer
 
 
