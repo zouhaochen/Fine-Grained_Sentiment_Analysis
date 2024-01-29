@@ -1,0 +1,225 @@
+import tensorflow as tf
+
+class GCNAggregator_2layer(object):
+    def __init__(self, input_dim, output_dim, name, act=tf.nn.relu):
+        self.weight_layer_1 = tf.Variable(
+            tf.random_normal([input_dim, 512]) * tf.sqrt(2 / output_dim),
+            name=name+"_1")
+        self.weight_layer_2 = tf.Variable(
+            tf.random_normal([512, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name+"_2")
+        self.act = act
+
+    def _call(self, samples):
+        next_hidden = []
+        self_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[0])
+        neig_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[1])
+        next_hidden.append(tf.nn.leaky_relu(tf.reduce_mean(tf.concat([neig_1, tf.expand_dims(self_1, axis=1)], axis=1), axis=1)))
+        self_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[1])
+        neig_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[2])
+        next_hidden.append(tf.nn.leaky_relu(tf.reduce_mean(tf.concat([neig_1, tf.expand_dims(self_1, axis=2)], axis=2), axis=2)))
+        self_2 = tf.reduce_mean(tf.concat([next_hidden[1], tf.expand_dims(next_hidden[0], axis=1)], axis=1), axis=1)
+        self_2 = tf.matmul(self_2, self.weight_layer_2)
+        return self.act(self_2)
+
+    def __call__(self, samples):
+        outputs = self._call(samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.weight_layer_1, self.weight_layer_2]
+
+
+class GCNAggregator_1layer(object):
+    def __init__(self, input_dim, output_dim, name, act=tf.nn.leaky_relu):
+        self.weight_layer_1 = tf.Variable(
+            tf.random_normal([input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name+"_1")
+        self.act = act
+
+    def _call(self, samples):
+        next_hidden = []
+        self_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[0])
+        neig_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[1])
+        self_1 = tf.reduce_mean(tf.concat([neig_1, tf.expand_dims(self_1, axis=1)], axis=1), axis=1)
+        return self.act(self_1)
+
+    def __call__(self, samples):
+        outputs = self._call(samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.weight_layer_1]
+
+
+class GCNAggregator_1layer_cross(object):
+    def __init__(self, user_input_dim, item_input_dim, output_dim, name, act=tf.nn.leaky_relu):
+        self.user_weight_layer_1 = tf.Variable(
+            tf.random_normal([user_input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name+"_user")
+        self.item_weight_layer_1 = tf.Variable(
+            tf.random_normal([item_input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name + "_item")
+        self.act = act
+
+    def _call(self, uu_samples, ui_samples, ii_samples, iu_samples):
+        uu_self = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[0])
+        uu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[1])
+        ui_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ui_samples[0])
+        u_self = tf.reduce_mean(tf.concat([uu_neig, ui_neig, tf.expand_dims(uu_self, axis=1)], axis=1), axis=1)
+
+        ii_self = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[0])
+        ii_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[1])
+        iu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, iu_samples[0])
+        i_self = tf.reduce_mean(tf.concat([ii_neig, iu_neig, tf.expand_dims(ii_self, axis=1)], axis=1), axis=1)
+
+        return self.act(u_self), self.act(i_self)
+
+    def __call__(self, uu_samples, ui_samples, ii_samples, iu_samples):
+        outputs = self._call(uu_samples, ui_samples, ii_samples, iu_samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.user_weight_layer_1, self.item_weight_layer_1]
+
+
+class GCNAggregator_1layer_only_cross(object):
+    def __init__(self, user_input_dim, item_input_dim, output_dim, name, act=tf.nn.leaky_relu):
+        self.user_weight_layer_1 = tf.Variable(
+            tf.random_normal([user_input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name+"_user")
+        self.item_weight_layer_1 = tf.Variable(
+            tf.random_normal([item_input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name + "_item")
+        self.act = act
+
+    def _call(self, uu_samples, ui_samples, ii_samples, iu_samples):
+        uu_self = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[0])
+        uu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[1])
+        ui_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ui_samples[0])
+        u_self = tf.reduce_mean(tf.concat([ui_neig, tf.expand_dims(uu_self, axis=1)], axis=1), axis=1)
+
+        ii_self = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[0])
+        ii_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[1])
+        iu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, iu_samples[0])
+        i_self = tf.reduce_mean(tf.concat([iu_neig, tf.expand_dims(ii_self, axis=1)], axis=1), axis=1)
+
+        return self.act(u_self), self.act(i_self)
+
+    def __call__(self, uu_samples, ui_samples, ii_samples, iu_samples):
+        outputs = self._call(uu_samples, ui_samples, ii_samples, iu_samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.user_weight_layer_1, self.item_weight_layer_1]
+
+
+class GCNAggregator_2layer_cross(object):
+    def __init__(self, user_input_dim, item_input_dim, output_dim, name, act=tf.nn.leaky_relu):
+        self.user_weight_layer_1 = tf.Variable(
+            tf.random_normal([user_input_dim, 512]) * tf.sqrt(2 / output_dim),
+            name=name+"_user_1")
+        self.item_weight_layer_1 = tf.Variable(
+            tf.random_normal([item_input_dim, 512]) * tf.sqrt(2 / output_dim),
+            name=name + "_item_1")
+        self.user_weight_layer_2 = tf.Variable(
+            tf.random_normal([512, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name + "_user_2")
+        self.item_weight_layer_2 = tf.Variable(
+            tf.random_normal([512, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name + "_item_2")
+        self.act = act
+
+    def _call(self, uu_samples, ui_samples, ii_samples, iu_samples):
+        user_next_hidden = []
+        item_next_hidden = []
+
+        uu_self = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[0])
+        uu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[1])
+        ui_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ui_samples[0])
+        user_next_hidden.append(tf.reduce_mean(tf.concat([uu_neig, ui_neig, tf.expand_dims(uu_self, axis=1)], axis=1), axis=1))
+
+        ii_self = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[0])
+        ii_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[1])
+        iu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, iu_samples[0])
+        item_next_hidden.append(tf.reduce_mean(tf.concat([ii_neig, iu_neig, tf.expand_dims(ii_self, axis=1)], axis=1), axis=1))
+
+        uu_self = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[1])
+        uu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, uu_samples[2])
+        ui_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ui_samples[1])
+        user_next_hidden.append(tf.reduce_mean(tf.concat([uu_neig, ui_neig, tf.expand_dims(uu_self, axis=2)], axis=2), axis=2))
+
+        ii_self = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[1])
+        ii_neig = tf.nn.embedding_lookup(self.item_weight_layer_1, ii_samples[2])
+        iu_neig = tf.nn.embedding_lookup(self.user_weight_layer_1, iu_samples[1])
+        item_next_hidden.append(tf.reduce_mean(tf.concat([ii_neig, iu_neig, tf.expand_dims(ii_self, axis=2)], axis=2), axis=2))
+
+        return self.act(u_self), self.act(i_self)
+
+    def __call__(self, uu_samples, ui_samples, ii_samples, iu_samples):
+        outputs = self._call(uu_samples, ui_samples, ii_samples, iu_samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.user_weight_layer_1, self.item_weight_layer_1]
+
+
+class GCNAggregator_1layer_weighted(object):
+    def __init__(self, input_dim, output_dim, name, act=tf.nn.leaky_relu):
+        self.weight_layer_1 = tf.Variable(
+            tf.random_normal([input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name+"_1")
+        self.act = act
+
+    def _call(self, samples, weights):
+        next_hidden = []
+        self_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[0])
+        neig_1 = tf.nn.embedding_lookup(self.weight_layer_1, samples[1])
+        weight = tf.expand_dims(weights[0], axis=2)
+        neig_1 = tf.multiply(neig_1, weight)
+        self_1 = tf.reduce_sum(tf.concat([neig_1, tf.expand_dims(self_1, axis=1)], axis=1), axis=1)
+        return self.act(self_1)
+
+    def __call__(self, samples):
+        outputs = self._call(samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.weight_layer_1]
+
+
+class MaxPoolingAggregator_1layer(object):
+    def __init__(self, input_dim, output_dim, name, act=tf.nn.leaky_relu):
+        self.weight_self_layer_1 = tf.Variable(
+            tf.random_normal([input_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name+"_self_1")
+        self.weight_neig_layer_1 = tf.Variable(
+            tf.random_normal([2*output_dim, output_dim]) * tf.sqrt(2 / output_dim),
+            name=name + "_neig_1")
+        self.weight_mlp = tf.Variable(
+            tf.random_normal([input_dim, 2*output_dim]) * tf.sqrt(2 / output_dim),
+            name=name + "_mlp_1")
+        self.bias_mlp = tf.Variable(tf.random_normal([2*output_dim]))
+        self.act = act
+
+    def _call(self, samples):
+        next_hidden = []
+        self_1 = tf.nn.embedding_lookup(self.weight_self_layer_1, samples[0])
+        neig_1 = tf.nn.embedding_lookup(self.weight_mlp, samples[1])
+        neig_1 = tf.add(neig_1, self.bias_mlp)
+        neig_1 = tf.nn.leaky_relu(neig_1)
+        neig_1 = tf.reduce_max(neig_1, axis=1)
+        neig_1 = tf.matmul(neig_1, self.weight_neig_layer_1)
+        self_1 = tf.add_n([self_1, neig_1])
+        return self.act(self_1)
+
+    def __call__(self, samples):
+        outputs = self._call(samples)
+        return outputs
+
+    def get_weight(self):
+        return [self.weight_self_layer_1, self.weight_neig_layer_1, self.weight_mlp]
+
+
+
+

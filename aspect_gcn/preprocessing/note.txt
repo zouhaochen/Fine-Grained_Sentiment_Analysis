@@ -1,0 +1,139 @@
+Thông tin về các model đang chạy:
+- ite_both_embed_pcat_model:
+    + Input: user_onehot và user_pcat; item_onehot và item_pcat
+    + Concat ở tầng embedding
+- ite_embed_pcat_model:
+    + Input: user_onehot; item_onehot và item_pcat
+    + Concat ở tầng embedding
+- ite_onehot_model:
+    + Input: user_onehot; item_onehot
+    +
+- ite_pcat_model:
+    + Input: user_onehot; item_onehot và item_pcat
+    + Concat ở tầng onehot
+- NMTR_both_embed_pcat_model:
+    + Input: user_onehot và user_pcat; item_onehot và item_pcat
+    + Concat ở tầng embedding
+- NMTR_model:
+    + Input: user_onehot; item_onehot
+    +
+- NMTR_pcat_model:
+    + Input: user_onehot; item_onehot và item_pcat
+    + Concat ở tầng onehot
+
+
+
+30/4:
+Mục tiêu: Thử xem cách thêm user_pcat như thế nào là hiệu quả nhất !!!
+Có 4 cách:
+1) Thêm ở cả GMF và MLP:
+    a) concat onehot
+    b) concat embedding
+2) Chỉ thêm bên MLP:
+    a) concat onehot
+    b) concat embedding
+
+Trên tập retail_rocket:
+    Đã thử:
+        + 1a
+    Đang thử:
+        + 2a
+Trên tập recobell:
+    Chưa thử
+Trên tập ml-1m:
+    Chưa thử
+
+Trước đó thử với chỉ thêm item pcat:
+    Đã thử với 1a, đang thử với 1b, 2b ( không thử với 1b vì thêm mình item pcat mà concat trên tầng embedding của GMF
+    không tự nhiên)
+**3h:
+tập retail-rocket:
+Batch-size: 2048
+Eta: 0.5 đối với ITE, 1.0 đối với NMTR
+    - one hot model:
+        + Done
+        + test thêm factor 256 cho onehot model, bởi vì 128 vẫn đang tốt lên nhiều (gpu18-0)
+        + (one_hot_log_loss)
+    - item_pcat_model:
+        + chạy lại mô hình item_pcat (gpu17-0) (item_pcat_log_loss)
+        + chạy mô hình item pcat chỉ thêm pcat bên phần MLP (eta:gpu18-0, factor: gpu18-1) (only_pcat_item_MLP)
+
+
+**3h10:
+tập retail-rocket:
+    - mô hình thêm cả user pcat và item pcat:
+        + Done (gpu17) (both_concat_onehot)
+        + bây giờ chỉ thêm bên phía mlp (gpu17-0) (only_mlp_both_concat_onehot)
+    - mô hình thêm item pcat:
+        + chạy lại mô hình chỉ thêm item pcat phần MLP, concat tầng embedding (gpu18-1) (only_pcat_item_MLP_concat_embed),
+        số factor bên MLP tầng embedding của cả onehot và pcat là như nhau (= 2 * num_factor)
+
+OK, tạm thời thế đã !!!
+------------------------------------------------------------------------------------------------------------------------
+
+1. Note bổ xung : 5/10/2019
+- item_repr: biểu diễn item dưới dạng embedding, mỗi item là vector 1699 chiều và lưu dưới dạng vector thưa trong file
+item_repr (các thành phần đã được chuẩn hóa)
+- user_repr: được biểu diễn tương tự (với vector đặc trưng được tính bằng trung bình)
+- i2index.txt: map id sản phẩm về không gian id mới(để sinh ra chiều bằng biểu diễn one-hot)
+- _implicit.clean & _explicit.clean: danh sách user có tương tác với lớn hơn 5 item (nhỏ hơn sẽ được loại bỏ)
+- partitioned_train_data: tách ra nhằm tránh load một thời điểm quá nhiều dẫn đến full ram( mỗi một lần load sẽ
+được tách nhỏ theo từng size epoch để đưa vào trainning).
+- y1_indicator, y2_indicator: thể hiện rằng cặp user - item đó sẽ được train tại bước implicit (y1) hay explicit(y2)
+
+2. Chú ý quá trình tiền xử lý dataset:
+- Đặc biệt với bộ dữ liệu recobell:
+ + View Log : http://pakdd2017.recobell.io/site_view_log.csv000.gz -> implicit
+ + Order Log : http://pakdd2017.recobell.io/site_order_log.csv000.gz -> explicit (hành động mua)
+ + Product Metadata : http://pakdd2017.recobell.io/site_product.csv000.gz
+
+- File tiền xử lý chủ yếu là trong script jupyter notebook.
+------------------------------------------------------------------------------------------------------------------------
+
+Note data 20/11/2019
+- ratings_new_ids: user_ids|item_ids|interact_list
+- ratings_train.txt: danh sach chuoi tuong ung tu ratings_new_ids voi chuoi nao co phan tu cuoi cung la tuong tac explicit
+thi duoc cat ra dua vao de test
+- ratings_test.txt: mot cap user|itemid o cuoi chuoi trong bộ dữ liệu ratings_new_ids.txt, và giá trị tương tác của cặp ui
+này là 1(có tương tác explicit).
+
+------------------------------------------------------------------------------------------------------------------------
+Note data 21/11/2019
+1.tu file _implicit.clean.txt & _explicit.clean.txt thu duoc file ratings.txt
+  với định dạng: uid, itemid, implicit_timestep, number_implicit, number_explicit, number_explicit.
+
+2. từ file ratings.txt tách ra 2 file cho việc train và test.
+ - explicit_negative_records: danh sach bao gom num_negative cac item khong co tuong tac explicit.
+ - _explicit.test.rating: la cap uid va item_id (4|2504|1433223390388|2) voi timestamp tuong ung lay tu ratings.txt, cac
+   cap nay la cac cap explicit cuoi cung cua user do.
+ - neu mot user khong co tuong tac explicit thi se khong co _explicit.test.rating va _explicit.test.negative tuong ung
+ voi user do.
+ - _explicit.test.negative, _explicit.test.rating: chi co voi nhung user co tuong tac explicit de dua vao test, va danh sach
+  cac explicit.test.negative cua user do (test ca doi voi cac negative case).
+
+3. Chia tap du dữ liệu train, test dataset tương ứng với của Nhật.(cùng các cặp test so với Nhật)
+Chia du liệu train/test dataset sử dụng file z_check1.py => return ..._v2.txt
+Số lượng bản ghi của _explicit.test.negative(Nhat) = _ratings_test_v3(Tuc)
+
+Note data 16/12/2019
+4. ratings_train_v3.txt, ratings_test_v3.txt: train và test trong do giữ lại tương tác click.
+5. ratings_train_v4.txt, ratings_test_v4.txt: train và test trong do bỏ đi các tương tác click ngay truoc do.
+sử dụng file z_check1.py
+
+Note data 30/12/2019
+6. ratings_train_rnn.txt, ratings_test_rnn.txt: train và test trong đó tách tương tác explicit cuối cùng
+và tương tác ngay trước đó để đưa vào làm test data sử dụng preprocess_rnn_dataset.py
+Trong file ratings_new_ids.txt: userid | list_item_ids | sequence_interact(0: implicit, 1: explicit)
+
+7. Note data 13/1/2020
+preprocess.py => tiền xử lý để tạo ra file ratings_new_ids.txt
+
+8. 4/2/2020
+File z_tmall.py được dùng để tiền xử lý và tách ra file train, test cho bộ dữ liệu tmall dataset.
+
+9. ratings_train_v5, ratings_test_v5: bo tat cac implicit trong test item trong bo du lieu train.
+
+10. Create_train.py được dùng để tạo ra dữ liệu train_with_implicit và dữ liệu train_without_implicit
+từ file dữ liệu ban đầu và loại bỏ đi các tương tương tác của user tương ứng với item trong bộ dữ
+liệu test data. (11/2/2020)
+
