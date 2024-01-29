@@ -9,22 +9,19 @@ from transformers.models.bert.modeling_bert import BertAttention, BertPooler
 from transformers import logging
 logging.set_verbosity_error()
 
-config = BertConfig.from_pretrained(BERT_MODEL_NAME)
+config = BertConfig.from_pretrained(EMBED_MODEL_NAME)
 
 
 class Model(nn.Module):
-
-    # 模型初始化
     def __init__(self):
         super().__init__()
 
-        # 加载预训练模型
-        self.bert = BertModel.from_pretrained(BERT_MODEL_NAME)
-        self.ent_linear = nn.Linear(BERT_DIM, ENT_SIZE)
+        self.bert = BertModel.from_pretrained(EMBED_MODEL_NAME)
+        self.ent_linear = nn.Linear(EMBED_DIM, ENT_SIZE)
         self.crf = CRF(ENT_SIZE, batch_first=True)
-        self.pola_linear2 = nn.Linear(BERT_DIM * 2, BERT_DIM)
-        self.pola_linear3 = nn.Linear(BERT_DIM * 3, BERT_DIM)
-        self.pola_linear = nn.Linear(BERT_DIM, POLA_DIM)
+        self.pola_linear2 = nn.Linear(EMBED_DIM * 2, EMBED_DIM)
+        self.pola_linear3 = nn.Linear(EMBED_DIM * 3, EMBED_DIM)
+        self.pola_linear = nn.Linear(EMBED_DIM, POLA_DIM)
         self.attention = BertAttention(config)
         self.pooler = BertPooler(config)
         self.dropout = nn.Dropout()
@@ -48,12 +45,11 @@ class Model(nn.Module):
         text_encoded = self.get_text_encoded(input_ids, mask)
 
         # shape [b, c] -> [b, c, 768]
-        ent_cdm_weight = ent_cdm.unsqueeze(-1).repeat(1, 1, BERT_DIM)
-        ent_cdw_weight = ent_cdw.unsqueeze(-1).repeat(1, 1, BERT_DIM)
+        ent_cdm_weight = ent_cdm.unsqueeze(-1).repeat(1, 1, EMBED_DIM)
+        ent_cdw_weight = ent_cdw.unsqueeze(-1).repeat(1, 1, EMBED_DIM)
         cdm_feature = torch.mul(text_encoded, ent_cdm_weight)
         cdw_feature = torch.mul(text_encoded, ent_cdw_weight)
 
-        # 根据配置，使用不同的策略，重新组合特征，在降维到768维
         if LCF == 'fusion':
             out = torch.cat([text_encoded, cdm_feature, cdw_feature], dim=-1)
             out = self.pola_linear3(out)
@@ -63,10 +59,8 @@ class Model(nn.Module):
         elif LCF == 'cdw':
             out = cdw_feature
 
-        # self-attension 结合上下文信息，增强语义
         out = self.attention(out, None)
 
-        # pooler 取[CLS]标记位，作为整个句子的特征
         out = torch.sigmoid(self.pooler(torch.tanh(out[0])))
         return self.pola_linear(out)
 
