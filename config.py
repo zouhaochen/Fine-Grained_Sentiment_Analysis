@@ -1,7 +1,7 @@
 import torch
 
-TRAIN_FILE_PATH = './output/process/atepc.train.csv'
-TEST_FILE_PATH = './output/process/atepc.test.csv'
+TRAIN_FILE_PATH = './output/process/fine_grained_sentiment_analysis.train.csv'
+TEST_FILE_PATH = './output/process/fine_grained_sentiment_analysis.test.csv'
 
 # BIO标记相关配置项
 BIO_O_ID = 0
@@ -21,6 +21,7 @@ POLA_DIM = 3
 
 
 # Transformer Embedding相关配置项
+
 # 填充ID为0
 BERT_PAD_ID = 0
 BERT_MODEL_NAME = './huggingface/LLM_embedder'
