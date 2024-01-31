@@ -8,7 +8,6 @@ BIO_B_ID = 1
 BIO_I_ID = 2
 BIO_MAP = {'O': BIO_O_ID, 'B-ASP': BIO_B_ID, 'I-ASP': BIO_I_ID}
 
-
 ENT_SIZE = 3
 
 
