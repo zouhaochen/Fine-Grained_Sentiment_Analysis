@@ -26,6 +26,7 @@ EMBED_DIM = 1024
 
 SRD = 3
 
+
 BATCH_SIZE = 50
 EPOCH = 100
 LR = 1e-4
