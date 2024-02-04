@@ -31,5 +31,4 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 EPS = 1e-10
 LCF = 'cdw'  # cdw cdm fusion
 
-
 print(DEVICE)
