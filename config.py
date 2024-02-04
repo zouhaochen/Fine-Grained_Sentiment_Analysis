@@ -24,7 +24,6 @@ BATCH_SIZE = 50
 EPOCH = 100
 LR = 1e-4
 
-
 MODEL_DIR = './output/model'
 
 
