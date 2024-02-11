@@ -23,6 +23,7 @@ EMBED_PAD_ID = 0
 EMBED_MODEL_NAME = './huggingface/LLM_embedder'
 EMBED_DIM = 1024
 
+
 SRD = 3
 
 BATCH_SIZE = 50
