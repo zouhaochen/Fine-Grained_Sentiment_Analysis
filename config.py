@@ -31,6 +31,7 @@ BATCH_SIZE = 50
 EPOCH = 100
 LR = 1e-4
 
+
 MODEL_DIR = './output/model'
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
