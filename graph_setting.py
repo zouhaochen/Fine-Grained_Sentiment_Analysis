@@ -3,7 +3,6 @@ from pydot import Dot, graph_from_dot_data, Edge
 from graphviz.graphs import BaseGraph
 from graphviz import Source
 
-
 import amrlib
 from amrlib.graph_processing.amr_plot import AMRPlot
 
