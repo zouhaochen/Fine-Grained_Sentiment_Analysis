@@ -36,6 +36,7 @@ def check_label():
             cnt = dct.get((b, p), 0)
             dct[(b, p)] = cnt + 1
     print(dct)
+
     df.to_csv(TRAIN_FILE_PATH, index=None)
 
 
