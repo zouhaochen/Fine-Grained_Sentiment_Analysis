@@ -20,7 +20,6 @@ def get_ent_pos(lst):
         i += 1
     return items
 
-
 def get_ent_weight(max_len, ent_pos):
     cdm = []
     cdw = []
