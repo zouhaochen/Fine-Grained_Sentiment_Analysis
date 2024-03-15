@@ -35,7 +35,6 @@ def get_ent_weight(max_len, ent_pos):
 
     return cdm, cdw
 
-
 class Dataset(data.Dataset):
     def __init__(self, type='train'):
         super().__init__()
