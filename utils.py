@@ -140,7 +140,6 @@ def get_pola(model, input_ids, mask, ent_label):
     b_ent_pola = model.get_pola(b_input_ids, b_mask, b_ent_cdm, b_ent_cdw)
     return b_ent_pos, b_ent_pola
 
-
 if __name__ == '__main__':
     dataset = Dataset()
     loader = data.DataLoader(dataset, batch_size=2, collate_fn=dataset.collate_fn)
