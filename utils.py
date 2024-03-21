@@ -5,7 +5,6 @@ from transformers import BertTokenizer
 import torch
 import random
 
-
 def get_ent_pos(lst):
     items = []
     for i in range(len(lst)):
