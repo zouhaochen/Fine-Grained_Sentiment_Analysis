@@ -115,6 +115,7 @@ class Dataset(data.Dataset):
             batch_pairs,
         )
 
+
 def get_pola(model, input_ids, mask, ent_label):
 
     b_input_ids = []
